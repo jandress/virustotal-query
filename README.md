@@ -1,2 +1,2 @@
 # virustotal-query
-Tool for querying a list of URLs on VirusTotal
+Tool for querying a list of URLs against VirusTotal
