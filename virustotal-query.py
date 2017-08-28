@@ -2,9 +2,11 @@ import json
 import requests
 import time
 
+
 urls_out = {}
 urls_out['urls'] = []
 
+#open the URls list
 try:
 	with open('urllist.json') as outfile:
 		urls_out = json.load(outfile)
@@ -12,17 +14,20 @@ except ValueError, error:  # includes JSONDecodeError
 	logger.error(error)                                                           
 return None 
 
+#the URL file is manually specified here, this should be an argument
 urlfile = "urls.txt"
 
 with open (urlfile, 'r') as infile:
 	data = infile.read()
 url_list = data.splitlines()
 
+#iterate through the URLs from the file
 for url in url_list:
 	headers = {
   	"Accept-Encoding": "gzip, deflate",
  	 "User-Agent" : "gzip,  My Python requests library example client or username"
 	  }
+#virustotal API key needs to be plugged in here
 	params = {'apikey': 'apikeygoeshere', 'resource':url}
 	response = requests.post('https://www.virustotal.com/vtapi/v2/url/report',
 	  params=params, headers=headers)
@@ -40,4 +45,4 @@ for url in url_list:
 	time.sleep(15)
 
 	with open('urllist.json', 'w') as outfile:
-		json.dump(urls_out, outfile, indent=4)
+json.dump(urls_out, outfile, indent=4)
