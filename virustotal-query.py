@@ -1,48 +1,60 @@
-import json
 import requests
+import argparse
 import time
+import base64
 
+API_URL_SCAN = "https://www.virustotal.com/api/v3/urls"
+API_URL_REPORT = "https://www.virustotal.com/api/v3/analyses/"
+API_KEY = "YOUR_API_KEY_HERE"  # Replace with your actual API key
 
-urls_out = {}
-urls_out['urls'] = []
+def scan_url(url):
+    headers = {'x-apikey': API_KEY}
+    data = {'url': url}
+    response = requests.post(API_URL_SCAN, headers=headers, data=data)
+    if response.status_code == 200:
+        return response.json()
+    else:
+        print(f"Error scanning URL {url}: {response.status_code}")
+        print(response.text)
+        return None
 
-#open the URls list
-try:
-	with open('urllist.json') as outfile:
-		urls_out = json.load(outfile)
-except ValueError, error:  # includes JSONDecodeError                          
-	logger.error(error)                                                           
-return None 
+def get_report(analysis_id):
+    headers = {'x-apikey': API_KEY}
+    response = requests.get(f"{API_URL_REPORT}{analysis_id}", headers=headers)
+    if response.status_code == 200:
+        return response.json()
+    else:
+        print(f"Error fetching report for analysis ID {analysis_id}: {response.status_code}")
+        print(response.text)
+        return None
 
-#the URL file is manually specified here, this should be an argument
-urlfile = "urls.txt"
+def read_urls(file_path):
+    with open(file_path, 'r') as file:
+        urls = file.readlines()
+    return [url.strip() for url in urls]
 
-with open (urlfile, 'r') as infile:
-	data = infile.read()
-url_list = data.splitlines()
+def main():
+    parser = argparse.ArgumentParser(description="Scan a list of URLs with VirusTotal.")
+    parser.add_argument('file_path', help='Path to the file containing URLs to scan')
+    args = parser.parse_args()
 
-#iterate through the URLs from the file
-for url in url_list:
-	headers = {
-  	"Accept-Encoding": "gzip, deflate",
- 	 "User-Agent" : "gzip,  My Python requests library example client or username"
-	  }
-#virustotal API key needs to be plugged in here
-	params = {'apikey': 'apikeygoeshere', 'resource':url}
-	response = requests.post('https://www.virustotal.com/vtapi/v2/url/report',
-	  params=params, headers=headers)
-	json_response = response.json()
+    urls = read_urls(args.file_path)
+    print(f"Found {len(urls)} URLs to scan.")
 
-	#print json.dumps(json_response, sort_keys=False, indent=4)
-	url_response = json_response["url"]
-	positives_response = json_response["positives"]
-	total_response = json_response["total"]
-	scandate_response = json_response["scan_date"]
-	print url_response, positives_response, total_response, scandate_response
-	urls_out['urls'].append({'url': url_response, 'scan':{'scandate': scandate_response,'positives': positives_response,'total': total_response}})
-	#urls_out['urls'].append({'url': url_response,'scandate': scandate_response,'positives': positives_response,'total': total_response})
-	#urls_out['urls'].append({'url': url_response,'scandate': scandate_response,'positives': positives_response,'total': total_response})
-	time.sleep(15)
+    for url in urls:
+        print(f"\nScanning URL: {url}")
+        scan_result = scan_url(url)
+        if scan_result:
+            analysis_id = scan_result['data']['id']
+            print(f"Analysis ID: {analysis_id}")
+            
+            print("Waiting for report...")
+            time.sleep(30)  # Wait for a bit to allow VirusTotal to process the URL
 
-	with open('urllist.json', 'w') as outfile:
-json.dump(urls_out, outfile, indent=4)
+            report = get_report(analysis_id)
+            if report:
+                print(f"Scan Report for {url}:")
+                print(report)
+
+if __name__ == "__main__":
+    main()
